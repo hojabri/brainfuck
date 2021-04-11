@@ -71,8 +71,9 @@ go get -u github.com/hojabri/brainfuck
 
 ####  Custom Commands 
 
-You can include your own custom commands inside brainfuck code
- For example:
+You can include your own custom commands inside brainfuck code.
+
+For example:
  ```
  {memory}10++++{memory}10{increment}150{memory}10
  ```
@@ -92,7 +93,31 @@ You can include your own custom commands inside brainfuck code
 		Hello world!
 		Memory: [72 101 108 108 111 32 119 111 114 108 100 33]
 ```
-Sample code:
+To use this feature you should define your own function to execute these custom commands:
+
+```go
+func customFunction(commandName string, commandArg int, machine *brainfuck.Machine) {
+	switch commandName {
+	case "{power}":
+		machine.Memory[machine.DataPointer] =int(math.Pow(float64(machine.Memory[machine.DataPointer]),float64(commandArg)))
+	case "{memory}":
+		if commandArg >0 {
+			fmt.Printf("\nMemory: %v\n" , machine.Memory[:commandArg])
+		} else {
+			fmt.Printf("\nMemory: %v\n" , machine.Memory)
+		}
+	case "{increment}":
+		machine.Memory[machine.DataPointer] += commandArg
+	}
+}
+```
+
+And pass it to the brainfuck machine when initializing:
+```go
+m := brainfuck.NewMachine(instructions, os.Stdin, os.Stdout, customFunction)
+```
+
+Sample complete code:
 ```go
 package main
 
