@@ -174,7 +174,7 @@ func TestCompiler_appendToInstructions(t *testing.T) {
 				position:     tt.fields.position,
 				instructions: tt.fields.instructions,
 			}
-			if got := compiler.appendToInstructions(tt.args.instructionType, tt.args.repeat, tt.args.indexOfJump); got != tt.functionOutputWant {
+			if got := compiler.appendToInstructions(tt.args.instructionType, tt.args.repeat, tt.args.indexOfJump,"",0); got != tt.functionOutputWant {
 				t.Errorf("appendToInstructions() = %v, functionOutputWant %v", got, tt.functionOutputWant)
 			}
 			
@@ -266,7 +266,7 @@ func TestNewCompiler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewCompiler(tt.args.code); !reflect.DeepEqual(got, tt.want) {
+			if got,_ := NewCompiler(tt.args.code); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewCompiler() = %v, functionOutputWant %v", got, tt.want)
 			}
 		})

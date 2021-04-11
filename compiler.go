@@ -1,7 +1,9 @@
 package brainfuck
 
 import (
-	"VaultningMiddleware/pkg/log"
+	"errors"
+	"github.com/hojabri/brainfuck/stack"
+	"log"
 	"regexp"
 	"strconv"
 )
@@ -21,16 +23,21 @@ type Compiler struct {
 	instructions []*Instruction
 }
 
-func NewCompiler(code string) *Compiler {
+func NewCompiler(code string) (*Compiler, error) {
+	err = validate(code)
+	if err != nil {
+		return nil,err
+	}
+	
 	return &Compiler{
 		code:         code,
 		codeLength:   len(code),
 		instructions: []*Instruction{},
-	}
+	},nil
 }
 
 func (compiler *Compiler) Compile() []*Instruction {
-	var loopStack []int
+	loopStack :=stack.Stack{}
 	for compiler.position < compiler.codeLength {
 		current := compiler.code[compiler.position]
 		
@@ -49,18 +56,19 @@ func (compiler *Compiler) Compile() []*Instruction {
 			compiler.groupRepeatedInstructions(ReadChar)
 		case '[':
 			insPos := compiler.appendToInstructions(OpenLoop, 1, 0,"",0)
-			loopStack = append(loopStack, insPos)
+			loopStack.Push(insPos)
 		case ']':
 			// Pop position of last OpenLoop ("[") instruction off stack
-			indexOfOpenLoop := loopStack[len(loopStack)-1]
-			loopStack = loopStack[:len(loopStack)-1]
-			
+			indexOfOpenLoop, err := loopStack.Pop()
+			if err!=nil {
+				log.Fatal(err)
+			}
 			// Emit the new CloseLoop ("]") instruction,
 			// with correct position as argument
-			indexOfCloseLoop := compiler.appendToInstructions(CloseLoop, 1, indexOfOpenLoop,"",0)
+			indexOfCloseLoop := compiler.appendToInstructions(CloseLoop, 1, indexOfOpenLoop.(int),"",0)
 			
 			// Patch the old OpenLoop ("[") instruction with new position
-			compiler.instructions[indexOfOpenLoop].IndexOfJump = indexOfCloseLoop
+			compiler.instructions[indexOfOpenLoop.(int)].IndexOfJump = indexOfCloseLoop
 		case '{':
 			match := SpecialInstructionRegex.FindStringSubmatch(compiler.code[compiler.position:])
 			if len(match) > 0 {
@@ -71,7 +79,7 @@ func (compiler *Compiler) Compile() []*Instruction {
 				if match[2] !="" {
 					customCommandArg,err = strconv.Atoi(match[2])
 					if err!=nil {
-						log.Error("custom command argument should be an integer number")
+						log.Fatal("custom command argument should be an integer number")
 					}
 				}
 				compiler.appendToInstructions(Custom, 1, 0,customCommandName,customCommandArg)
@@ -107,4 +115,26 @@ func (compiler *Compiler) appendToInstructions(instructionType InstructionType, 
 	}
 	compiler.instructions = append(compiler.instructions, instruction)
 	return len(compiler.instructions) - 1
+}
+
+func validate(code string) error {
+	testStack :=stack.Stack{}
+	for i, r := range code {
+		c := string(r)
+		if c == "[" {
+			testStack.Push(i)
+		} else if c == "]" {
+			_, err := testStack.Pop()
+			if err != nil {
+				return errors.New("code syntax error: closing brace without " +
+					"matched opening brace")
+			}
+		}
+	}
+	if testStack.Length() != 0 {
+		return errors.New("code syntax error: opening brace without matching " +
+			"closing brace")
+	}
+	
+	return nil
 }
