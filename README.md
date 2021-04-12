@@ -1,5 +1,5 @@
 # brainfuck
-A powerful, optimized and expandable Brainfuck library in Golang
+Expandable Brainfuck library written in Golang
 
 ## ⚡️ Quickstart
 
